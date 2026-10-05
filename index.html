@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eventora - Event Booking</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#1f2937;line-height:1.6}
+nav{background:#4f46e5;color:white;padding:16px 6%;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+.logo{font-size:24px;font-weight:800}.nav-links{display:flex;gap:20px;align-items:center}
+.nav-links a{color:white;text-decoration:none;cursor:pointer}
+.btn{border:0;border-radius:10px;padding:11px 18px;background:#4f46e5;color:#fff;cursor:pointer;font-weight:700}
+.btn:hover{opacity:.9}.hero{padding:70px 6%;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;text-align:center}
+.hero h1{font-size:46px;margin-bottom:12px}.hero p{font-size:18px;opacity:.95}
+.container{width:88%;max-width:1200px;margin:35px auto}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:25px}
+input,select{padding:12px;border:1px solid #d1d5db;border-radius:9px;font-size:15px}
+.search{flex:1;min-width:220px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px}
+.card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 5px 20px #00000012;transition:.2s}
+.card:hover{transform:translateY(-4px)}.card-img{height:170px;display:flex;align-items:center;justify-content:center;font-size:55px}
+.card-body{padding:20px}.tag{display:inline-block;background:#eef2ff;color:#4338ca;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:10px}
+.card h3{margin-bottom:8px}.meta{font-size:14px;color:#6b7280;margin:5px 0}
+.price{font-size:20px;font-weight:800;margin:12px 0}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:white;border-radius:16px;padding:25px;max-width:500px;width:100%;max-height:90vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.close{font-size:28px;cursor:pointer}.form-group{margin:12px 0}.form-group label{display:block;font-weight:700;margin-bottom:5px}
+.form-group input{width:100%}.summary{background:#f3f4f6;padding:15px;border-radius:10px;margin:15px 0}
+.booking{background:white;padding:18px;border-radius:14px;margin-bottom:15px;box-shadow:0 3px 12px #00000010;display:flex;justify-content:space-between;gap:15px;align-items:center}
+.empty{text-align:center;padding:50px;color:#6b7280}
+footer{text-align:center;padding:30px;background:#111827;color:#fff;margin-top:50px}
+.toast{position:fixed;right:20px;bottom:20px;background:#111827;color:white;padding:14px 20px;border-radius:10px;display:none;z-index:30}
+@media(max-width:700px){.hero h1{font-size:34px}.nav-links{gap:10px;font-size:14px}.booking{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🎫 Eventora</div>
+  <div class="nav-links">
+    <a onclick="showSection('events')">Events</a>
+    <a onclick="showSection('bookings')">My Bookings</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1>Book Your Next Experience</h1>
+  <p>Discover amazing events and reserve your tickets in seconds.</p>
+</section>
+
+<main class="container">
+  <section id="events">
+    <h2 style="margin-bottom:18px">Upcoming Events</h2>
+    <div class="toolbar">
+      <input id="search" class="search" placeholder="Search events..." oninput="renderEvents()">
+      <select id="category" onchange="renderEvents()">
+        <option value="all">All Categories</option>
+        <option value="Music">Music</option>
+        <option value="Technology">Technology</option>
+        <option value="Sports">Sports</option>
+        <option value="Business">Business</option>
+        <option value="Education">Education</option>
+      </select>
+    </div>
+    <div id="eventGrid" class="grid"></div>
+  </section>
+
+  <section id="bookings" style="display:none">
+    <h2 style="margin-bottom:18px">My Bookings</h2>
+    <div id="bookingList"></div>
+  </section>
+</main>
+
+<div id="bookingModal" class="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>Book Event</h2><span class="close" onclick="closeModal()">×</span>
+    </div>
+    <div id="eventSummary" class="summary"></div>
+    <div class="form-group"><label>Your Name</label><input id="name" placeholder="Enter your name"></div>
+    <div class="form-group"><label>Email</label><input id="email" type="email" placeholder="Enter your email"></div>
+    <div class="form-group"><label>Number of Tickets</label><input id="tickets" type="number" min="1" max="10" value="1" oninput="updateTotal()"></div>
+    <div id="total" class="price"></div>
+    <button class="btn" style="width:100%" onclick="confirmBooking()">Confirm Booking</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<footer>© 2026 Eventora • Event Booking Platform</footer>
+
+<script>
+const events = [
+ {id:1,title:"Tech Innovation Summit",category:"Technology",date:"2026-10-18",time:"10:00 AM",location:"Hyderabad",price:499,icon:"💻",desc:"Explore AI, cloud, web and future technologies."},
+ {id:2,title:"Live Music Festival",category:"Music",date:"2026-10-24",time:"6:00 PM",location:"Bengaluru",price:799,icon:"🎵",desc:"An unforgettable evening of live music and entertainment."},
+ {id:3,title:"Startup & Business Meet",category:"Business",date:"2026-11-02",time:"11:00 AM",location:"Chennai",price:399,icon:"💼",desc:"Meet founders, entrepreneurs and business professionals."},
+ {id:4,title:"Cricket Championship",category:"Sports",date:"2026-11-10",time:"4:00 PM",location:"Visakhapatnam",price:599,icon:"🏏",desc:"Experience an exciting cricket championship live."},
+ {id:5,title:"Data Science Workshop",category:"Education",date:"2026-11-16",time:"9:30 AM",location:"Tirupati",price:299,icon:"📊",desc:"Hands-on learning session covering Python and data science."},
+ {id:6,title:"College Cultural Fest",category:"Education",date:"2026-11-25",time:"5:00 PM",location:"Nellore",price:199,icon:"🎉",desc:"Music, dance, food and cultural performances."}
+];
+
+let selectedEvent = null;
+let bookings = JSON.parse(localStorage.getItem("eventoraBookings") || "[]");
+
+function renderEvents(){
+ const q=document.getElementById("search").value.toLowerCase();
+ const cat=document.getElementById("category").value;
+ const filtered=events.filter(e=>
+   (e.title.toLowerCase().includes(q)||e.location.toLowerCase().includes(q)||e.category.toLowerCase().includes(q)) &&
+   (cat==="all"||e.category===cat)
+ );
+ document.getElementById("eventGrid").innerHTML=filtered.length ? filtered.map(e=>`
+   <div class="card">
+     <div class="card-img">${e.icon}</div>
+     <div class="card-body">
+       <span class="tag">${e.category}</span>
+       <h3>${e.title}</h3>
+       <div class="meta">📅 ${formatDate(e.date)} • ${e.time}</div>
+       <div class="meta">📍 ${e.location}</div>
+       <p style="margin-top:8px">${e.desc}</p>
+       <div class="price">₹${e.price}</div>
+       <button class="btn" onclick="openBooking(${e.id})">Book Now</button>
+     </div>
+   </div>`).join("") : `<div class="empty">No events found.</div>`;
+}
+
+function formatDate(d){
+ return new Date(d+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});
+}
+
+function openBooking(id){
+ selectedEvent=events.find(e=>e.id===id);
+ document.getElementById("eventSummary").innerHTML=
+ `<strong>${selectedEvent.icon} ${selectedEvent.title}</strong><br>
+ ${formatDate(selectedEvent.date)} • ${selectedEvent.time}<br>
+ 📍 ${selectedEvent.location}<br>
+ Ticket price: ₹${selectedEvent.price}`;
+ document.getElementById("tickets").value=1;
+ document.getElementById("bookingModal").style.display="flex";
+ updateTotal();
+}
+
+function closeModal(){document.getElementById("bookingModal").style.display="none"}
+
+function updateTotal(){
+ if(!selectedEvent)return;
+ const n=Math.max(1,parseInt(document.getElementById("tickets").value)||1);
+ document.getElementById("total").textContent="Total: ₹"+(n*selectedEvent.price);
+}
+
+function confirmBooking(){
+ const name=document.getElementById("name").value.trim();
+ const email=document.getElementById("email").value.trim();
+ const tickets=Math.max(1,parseInt(document.getElementById("tickets").value)||1);
+ if(!name||!email){showToast("Please enter your name and email.");return}
+ const booking={
+   bookingId:"EV"+Date.now(),
+   eventId:selectedEvent.id,event:selectedEvent.title,date:selectedEvent.date,time:selectedEvent.time,
+   location:selectedEvent.location,name,email,tickets,total:tickets*selectedEvent.price
+ };
+ bookings.push(booking);
+ localStorage.setItem("eventoraBookings",JSON.stringify(bookings));
+ closeModal();
+ document.getElementById("name").value="";
+ document.getElementById("email").value="";
+ showToast("Booking confirmed successfully!");
+ renderBookings();
+ showSection("bookings");
+}
+
+function renderBookings(){
+ const box=document.getElementById("bookingList");
+ if(!bookings.length){box.innerHTML='<div class="empty">You have no bookings yet.</div>';return}
+ box.innerHTML=bookings.map(b=>`
+ <div class="booking">
+   <div>
+     <h3>🎟️ ${b.event}</h3>
+     <p>Booking ID: ${b.bookingId}</p>
+     <p>📅 ${formatDate(b.date)} • ${b.time} • 📍 ${b.location}</p>
+     <p>👤 ${b.name} • ${b.tickets} ticket(s) • ₹${b.total}</p>
+   </div>
+   <button class="btn" onclick="cancelBooking('${b.bookingId}')">Cancel</button>
+ </div>`).join("");
+}
+
+function cancelBooking(id){
+ bookings=bookings.filter(b=>b.bookingId!==id);
+ localStorage.setItem("eventoraBookings",JSON.stringify(bookings));
+ renderBookings();
+ showToast("Booking cancelled.");
+}
+
+function showSection(section){
+ document.getElementById("events").style.display=section==="events"?"block":"none";
+ document.getElementById("bookings").style.display=section==="bookings"?"block":"none";
+ if(section==="bookings")renderBookings();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function showToast(msg){
+ const t=document.getElementById("toast");
+ t.textContent=msg;t.style.display="block";
+ setTimeout(()=>t.style.display="none",2500);
+}
+
+window.onclick=e=>{if(e.target===document.getElementById("bookingModal"))closeModal()}
+renderEvents();
+renderBookings();
+</script>
+</body>
+</html>
